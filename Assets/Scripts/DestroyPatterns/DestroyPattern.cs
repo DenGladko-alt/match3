@@ -5,6 +5,7 @@ namespace Match3
 {
     public abstract class DestroyPattern : ScriptableObject
     {
-        public abstract List<Vector2Int> GetPattern(Vector2Int position, int radius);
+        public int Radius = 1;
+        public abstract List<Vector2Int> GetPattern(Vector2Int position);
     }
 }

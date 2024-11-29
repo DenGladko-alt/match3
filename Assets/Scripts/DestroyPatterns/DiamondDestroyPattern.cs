@@ -1,26 +1,28 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Match3
 {
-    public class DiamondDestroyPattern : IDestroyPattern
+    [CreateAssetMenu(fileName = "DiamondDestroyPattern", menuName = "Destroy Patterns/Diamond Destroy Pattern")]
+    public class DiamondDestroyPattern : DestroyPattern
     {
-        public List<Vector2Int> GetPattern(Vector2Int position, int radius)
+        public override List<Vector2Int> GetPattern(Vector2Int position)
         {
             List<Vector2Int> positions = new List<Vector2Int>();
 
-            for (int x = -radius; x <= radius; x++)
+            for (int x = -Radius; x <= Radius; x++)
             {
-                for (int y = -radius; y <= radius; y++)
+                for (int y = -Radius; y <= Radius; y++)
                 {
-                    if (Mathf.Abs(x) + Mathf.Abs(y) <= radius)
+                    if (Mathf.Abs(x) + Mathf.Abs(y) <= Radius)
                     {
                         positions.Add(position + new Vector2Int(x, y));
                     }
                 }
             }
 
-            return positions;
+            return positions.Distinct().ToList();
         }
     }
 }

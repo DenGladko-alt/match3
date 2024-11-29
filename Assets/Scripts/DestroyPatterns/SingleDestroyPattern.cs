@@ -1,12 +1,14 @@
-using System.Collections;
 using System.Collections.Generic;
-using Match3;
 using UnityEngine;
 
-public class SingleDestroyPattern : IDestroyPattern
+namespace Match3
 {
-    public List<Vector2Int> GetPattern(Vector2Int position, int radius)
+    [CreateAssetMenu(fileName = "SingleDestroyPattern", menuName = "Destroy Patterns/Single Destroy Pattern")]
+    public class SingleDestroyPattern : DestroyPattern
     {
-        return new List<Vector2Int> { position };
+        public override List<Vector2Int> GetPattern(Vector2Int position)
+        {
+            return new List<Vector2Int> { position };
+        }
     }
 }

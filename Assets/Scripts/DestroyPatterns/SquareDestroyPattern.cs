@@ -1,25 +1,25 @@
-using System.Collections;
 using System.Collections.Generic;
-using Match3;
+using System.Linq;
 using UnityEngine;
 
 namespace Match3
 {
-    public class SquareDestroyPattern : IDestroyPattern
+    [CreateAssetMenu(fileName = "SquareDestroyPattern", menuName = "Destroy Patterns/Square Destroy Pattern")]
+    public class SquareDestroyPattern : DestroyPattern
     {
-        public List<Vector2Int> GetPattern(Vector2Int position, int radius)
+        public override List<Vector2Int> GetPattern(Vector2Int position)
         {
             List<Vector2Int> positions = new List<Vector2Int>();
 
-            for (int x = -radius; x <= radius; x++)
+            for (int x = -Radius; x <= Radius; x++)
             {
-                for (int y = -radius; y <= radius; y++)
+                for (int y = -Radius; y <= Radius; y++)
                 {
                     positions.Add(position + new Vector2Int(x, y));
                 }
             }
 
-            return positions;
+            return positions.Distinct().ToList();
         }
     }
 }
