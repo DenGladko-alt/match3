@@ -1,9 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Match3;
 using UnityEngine;
 
 public class SC_Gem : MonoBehaviour
 {
+    [SerializeField] private IDestroyPattern destroyPattern = new SingleDestroyPattern();
+    
     [HideInInspector]
     public Vector2Int posIndex;
 
