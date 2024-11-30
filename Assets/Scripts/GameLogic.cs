@@ -93,8 +93,8 @@ public class GameLogic : MonoBehaviour
         Gem _curGem = gameBoard.GetGem(_Pos.x,_Pos.y);
         if (_curGem != null)
         {
-            Instantiate(_curGem.destroyEffect, new Vector2(_Pos.x, _Pos.y), Quaternion.identity);
-
+            //Instantiate(_curGem.destroyEffect, new Vector2(_Pos.x, _Pos.y), Quaternion.identity);
+            _curGem.PlayDestroyEffect();
             Destroy(_curGem.gameObject);
             SetGem(_Pos.x,_Pos.y, null);
         }

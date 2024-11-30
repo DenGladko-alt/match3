@@ -99,13 +99,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   destroyPattern: {fileID: 11400000, guid: 482ca84e7c8d2ff4e9c013778102cb25, type: 2}
-  posIndex: {x: 0, y: 0}
-  type: 0
-  isMatch: 0
   destroyEffect: {fileID: 8904178830182364799, guid: d794be08823edd34da1790efd1739074,
     type: 3}
+  gemType: 0
+  posIndex: {x: 0, y: 0}
   scoreValue: 10
-  blastSize: 1
 --- !u!61 &-4313073739878660840
 BoxCollider2D:
   m_ObjectHideFlags: 0

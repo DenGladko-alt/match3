@@ -15,6 +15,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7932498854989450506, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}
+      propertyPath: gemType
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: -7932498854989450506, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
       propertyPath: destroyEffect
       value: 
       objectReference: {fileID: 8968486364681163996, guid: 05c754e3d4f9fd349ac1def58d17670f,
@@ -23,7 +28,7 @@ PrefabInstance:
         type: 3}
       propertyPath: destroyPattern
       value: 
-      objectReference: {fileID: 11400000, guid: d34ea4d9ffee70c4593192a18b956d7f,
+      objectReference: {fileID: 11400000, guid: 47d4521e6b6d3b746b800b63716c0509,
         type: 2}
     - target: {fileID: -4313073739878660840, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class InputManager : MonoBehaviour
+public class InputHandler : MonoBehaviour
 {
     public static event Action<Gem> OnGemSelected;
     public static event Action<Gem, Gem> OnGemsSwipe;
@@ -21,9 +21,11 @@ public class InputManager : MonoBehaviour
         }
     }
 
+    // First click/touch
     private void HandleMouseDown()
     {
         Gem hitGem = GetGemAtMousePosition();
+        
         if (hitGem != null)
         {
             firstGem = hitGem;
@@ -31,9 +33,11 @@ public class InputManager : MonoBehaviour
         }
     }
 
+    // Dragging/Swiping
     private void HandleMouseDrag()
     {
         Gem secondGem = GetGemAtMousePosition();
+        
         if (secondGem != null && secondGem != firstGem)
         {
             OnGemsSwipe?.Invoke(firstGem, secondGem);

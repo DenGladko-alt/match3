@@ -32,7 +32,7 @@ public class GemSpawnManager : MonoBehaviour
 
         Gem _gem = Instantiate(_GemToSpawn, new Vector3(_Position.x, _Position.y + GameVariables.Instance.dropHeight, 0f), Quaternion.identity);
         _gem.transform.SetParent(gemsHolder);
-        _gem.name = "Gem - " + _Position.x + ", " + _Position.y;
+        _gem.name = $"Gem [{_Position.x},{_Position.y}]";
         gameBoard.SetGem(_Position.x,_Position.y, _gem);
         _gem.SetupGem(gameLogic,_Position);
     }

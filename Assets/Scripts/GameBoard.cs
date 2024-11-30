@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -9,6 +11,7 @@ public class GameBoard : MonoBehaviour
     [SerializeField] private int width = 7;
     [SerializeField] private int height = 7;
     [SerializeField] private Transform gemsFolder = null;
+    [SerializeField] private GameLogic gameLogic = null;
 
     private Gem[,] allGems;
     
@@ -18,6 +21,16 @@ public class GameBoard : MonoBehaviour
     public List<Gem> CurrentMatches { get; private set; } = new List<Gem>();
 
     #endregion
+
+    private void OnEnable()
+    {
+        InputHandler.OnGemsSwipe += OnGemsSwipe;
+    }
+
+    private void OnDisable()
+    {
+        InputHandler.OnGemsSwipe -= OnGemsSwipe;
+    }
 
     public void Setup()
     {
@@ -42,21 +55,54 @@ public class GameBoard : MonoBehaviour
     {
         if (_PositionToCheck.x > 1)
         {
-            if (allGems[_PositionToCheck.x - 1, _PositionToCheck.y].type == _GemToCheck.type &&
-                allGems[_PositionToCheck.x - 2, _PositionToCheck.y].type == _GemToCheck.type)
+            if (allGems[_PositionToCheck.x - 1, _PositionToCheck.y].GemType == _GemToCheck.GemType &&
+                allGems[_PositionToCheck.x - 2, _PositionToCheck.y].GemType == _GemToCheck.GemType)
                 return true;
         }
 
         if (_PositionToCheck.y > 1)
         {
-            if (allGems[_PositionToCheck.x, _PositionToCheck.y - 1].type == _GemToCheck.type &&
-                allGems[_PositionToCheck.x, _PositionToCheck.y - 2].type == _GemToCheck.type)
+            if (allGems[_PositionToCheck.x, _PositionToCheck.y - 1].GemType == _GemToCheck.GemType &&
+                allGems[_PositionToCheck.x, _PositionToCheck.y - 2].GemType == _GemToCheck.GemType)
                 return true;
         }
 
         return false;
     }
 
+    private void OnGemsSwipe(Gem firstGem, Gem secondGem)
+    {
+        StartCoroutine(SwapGemsCoroutine(firstGem, secondGem));
+    }
+
+    private IEnumerator SwapGemsCoroutine(Gem firstGem, Gem secondGem)
+    {
+        SwapGems(firstGem, secondGem);
+        
+        yield return new WaitForSeconds(.5f);
+        
+        FindAllMatches();
+
+        if (CurrentMatches.Count == 0)
+        {
+            SwapGems(secondGem, firstGem);
+        }
+        else
+        {
+            gameLogic.DestroyMatches();
+        }
+    }
+
+    private void SwapGems(Gem firstGem, Gem secondGem)
+    {
+        Vector2Int firstGemPosition = firstGem.posIndex;
+        SetGem(secondGem.posIndex.x, secondGem.posIndex.y, firstGem);
+        firstGem.posIndex = secondGem.posIndex;
+        
+        SetGem(firstGemPosition.x, firstGemPosition.y, secondGem);
+        secondGem.posIndex = firstGemPosition;
+    }
+    
     public void SetGem(int _X, int _Y, Gem _Gem)
     {
         allGems[_X, _Y] = _Gem;
@@ -84,11 +130,8 @@ public class GameBoard : MonoBehaviour
                         if (leftGem != null && rightGem != null)
                         {
                             //Match
-                            if (leftGem.type == currentGem.type && rightGem.type == currentGem.type)
+                            if (leftGem.GemType == currentGem.GemType && rightGem.GemType == currentGem.GemType)
                             {
-                                currentGem.isMatch = true;
-                                leftGem.isMatch = true;
-                                rightGem.isMatch = true;
                                 CurrentMatches.Add(currentGem);
                                 CurrentMatches.Add(leftGem);
                                 CurrentMatches.Add(rightGem);
@@ -104,11 +147,8 @@ public class GameBoard : MonoBehaviour
                         if (aboveGem != null && bellowGem != null)
                         {
                             //Match
-                            if (aboveGem.type == currentGem.type && bellowGem.type == currentGem.type)
+                            if (aboveGem.GemType == currentGem.GemType && bellowGem.GemType == currentGem.GemType)
                             {
-                                currentGem.isMatch = true;
-                                aboveGem.isMatch = true;
-                                bellowGem.isMatch = true;
                                 CurrentMatches.Add(currentGem);
                                 CurrentMatches.Add(aboveGem);
                                 CurrentMatches.Add(bellowGem);
@@ -121,10 +161,10 @@ public class GameBoard : MonoBehaviour
         if (CurrentMatches.Count > 0)
             CurrentMatches = CurrentMatches.Distinct().ToList();
 
-        CheckForBombs();
+        CheckForSpecials();
     }
 
-    private void CheckForBombs()
+    private void CheckForSpecials()
     {
         for (int i = 0; i < CurrentMatches.Count; i++)
         {
@@ -145,9 +185,9 @@ public class GameBoard : MonoBehaviour
         
         Gem gem = allGems[x, y];
         
-        if (gem == null || gem.type != GlobalEnums.GemType.Special) return;
+        if (gem == null || gem.GemType != GlobalEnums.GemType.Special) return;
         
-        List<Vector2Int> patternPositions = gem.destroyPattern?.GetPattern(new Vector2Int(x, y));
+        List<Vector2Int> patternPositions = gem.DestroyPattern?.GetPattern(new Vector2Int(x, y));
         
         if (patternPositions == null) return;
 
@@ -159,8 +199,7 @@ public class GameBoard : MonoBehaviour
             Gem gemToDestroy = allGems[pos.x, pos.y];
 
             if (gemToDestroy == null) continue;
-
-            gemToDestroy.isMatch = true;
+            
             if (!CurrentMatches.Contains(gemToDestroy)) CurrentMatches.Add(gemToDestroy);
         }
     }
