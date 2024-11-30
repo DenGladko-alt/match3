@@ -20,12 +20,12 @@ namespace Match3
 
         private void OnEnable()
         {
-            SC_GameLogic.OnScoreChanged += OnOnScoreChanged;
+            GameLogic.OnScoreChanged += OnOnScoreChanged;
         }
 
         private void OnDisable()
         {
-            SC_GameLogic.OnScoreChanged -= OnOnScoreChanged;
+            GameLogic.OnScoreChanged -= OnOnScoreChanged;
         }
 
         private void OnOnScoreChanged(int newScore)
