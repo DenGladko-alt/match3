@@ -3,9 +3,11 @@ using UnityEngine;
 
 public class InputHandler : MonoBehaviour
 {
+    // Events
     public static event Action<Gem> OnGemSelected;
     public static event Action<Gem, Gem> OnGemsSwipe;
 
+    // Variables
     private Gem firstGem = null;
 
     private void Update()

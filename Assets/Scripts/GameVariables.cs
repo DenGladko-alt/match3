@@ -22,7 +22,7 @@ public class GameVariables : MonoBehaviour
         get
         {
             if (instance == null)
-                instance = GameObject.Find("GameVariables").GetComponent<GameVariables>();
+                instance = FindObjectOfType<GameVariables>();
 
             return instance;
         }

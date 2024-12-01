@@ -5,7 +5,7 @@ public class Gem : MonoBehaviour
 {
     [SerializeField] private DestroyPattern destroyPattern;
     [SerializeField] private GameObject destroyEffect;
-    [SerializeField] private GlobalEnums.GemType gemType;
+    [SerializeField] private GemType gemType;
     
     [HideInInspector] public Vector2Int posIndex;
 
@@ -14,7 +14,7 @@ public class Gem : MonoBehaviour
     private GameLogic _gameLogic;
     
     public DestroyPattern DestroyPattern { get => destroyPattern; private set => destroyPattern = value; }
-    public GlobalEnums.GemType GemType { get => gemType; private set => gemType = value; }
+    public GemType GemType { get => gemType; private set => gemType = value; }
 
     void Update()
     {
