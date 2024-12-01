@@ -20,15 +20,15 @@ namespace Match3
 
         private void OnEnable()
         {
-            GameLogic.OnScoreChanged += OnOnScoreChanged;
+            ScoreManager.OnScoreChanged += OnOnScoreChanged;
         }
 
         private void OnDisable()
         {
-            GameLogic.OnScoreChanged -= OnOnScoreChanged;
+            ScoreManager.OnScoreChanged -= OnOnScoreChanged;
         }
 
-        private void OnOnScoreChanged(int newScore)
+        private void OnOnScoreChanged(int oldScore, int newScore)
         {
             if (scoreRoutine != null) StopCoroutine(scoreRoutine);
             

@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a17970e6db3a22a4c87b40aa44516066, type: 3}
   m_Name: DiamondDestroyPattern
   m_EditorClassIdentifier: 
-  Radius: 1
+  Radius: 2
