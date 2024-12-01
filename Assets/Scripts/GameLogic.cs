@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -8,21 +9,14 @@ namespace Match3
 {
     public class GameLogic : MonoBehaviour
     {
-        public static event Action<int> OnScoreChanged;
-
         [SerializeField] private GameBoard gameBoard;
         [SerializeField] private GemSpawnManager gemSpawnManager;
-
-        private int score = 0;
 
         public GameState CurrentState { get; private set; } = GameState.Move;
 
         #region MonoBehaviour
 
-        private void Awake()
-        {
-            Init();
-        }
+        private void Awake() => Init();
 
         #endregion
 
@@ -51,17 +45,62 @@ namespace Match3
 
         public void DestroyMatches()
         {
-            for (int i = 0; i < gameBoard.CurrentMatches.Count; i++)
-                if (gameBoard.CurrentMatches[i] != null)
-                {
-                    ScoreCheck(gameBoard.CurrentMatches[i]);
-                    DestroyMatchedGemsAt(gameBoard.CurrentMatches[i].posIndex);
-                }
-
-            StartCoroutine(DecreaseRowCo());
+            StartCoroutine(DestroyMatchedGemsCoroutine());
         }
 
-        private IEnumerator DecreaseRowCo()
+        
+        private IEnumerator DestroyMatchedGemsCoroutine()
+        {
+            // Get specials gems to destroy them later
+            List<Gem> specialGems = new List<Gem>();
+
+            for (int i = 0; i < gameBoard.CurrentMatches.Count; i++)
+            {
+                if (gameBoard.CurrentMatches[i].GemType == GemType.Special)
+                {
+                    specialGems.Add(gameBoard.CurrentMatches[i]);
+                    gameBoard.CurrentMatches.Remove(gameBoard.CurrentMatches[i]);
+                }
+            }
+            
+            var groupedByDistance = gameBoard.CurrentMatches
+                .GroupBy(gem => gem.DestroyOrder)
+                .OrderBy(group => group.Key);
+            
+            // Destroy simple gems
+            for (int i = 0; i < groupedByDistance.Count(); i++)
+            {
+                // Destroy all gems in the current group
+                foreach (var gem in groupedByDistance.ElementAt(i))
+                {
+                    DestroyGem(gem);
+                }
+
+                // Wait before processing the next group
+                // TODO: Change to config file or something
+                yield return new WaitForSeconds(0.25f);
+            }
+
+            // Destroy special gems
+            foreach (var gem in specialGems)
+            {
+                DestroyGem(gem);
+            }
+            
+            StartCoroutine(DecreaseRowCoroutine());
+        }
+
+        private void DestroyGem(Gem gem)
+        {
+            if (gem != null)
+            {
+                Vector2Int gemPos = new Vector2Int(gem.posIndex.x, gem.posIndex.y);
+                gem.DestroyGem();
+                SetGem(gemPos.x, gemPos.y, null);
+            }
+        }
+
+        private IEnumerator DecreaseRowCoroutine()
         {
             yield return new WaitForSeconds(.2f);
 
@@ -86,28 +125,10 @@ namespace Match3
                 nullCounter = 0;
             }
 
-            StartCoroutine(FilledBoardCo());
+            StartCoroutine(FilledBoardCoroutine());
         }
 
-        private void ScoreCheck(Gem gemToCheck)
-        {
-            score += gemToCheck.scoreValue;
-
-            OnScoreChanged?.Invoke(score);
-        }
-
-        private void DestroyMatchedGemsAt(Vector2Int _Pos)
-        {
-            Gem _curGem = gameBoard.GetGem(_Pos.x, _Pos.y);
-            if (_curGem != null)
-            {
-                _curGem.PlayDestroyEffect();
-                Destroy(_curGem.gameObject);
-                SetGem(_Pos.x, _Pos.y, null);
-            }
-        }
-
-        private IEnumerator FilledBoardCo()
+        private IEnumerator FilledBoardCoroutine()
         {
             yield return new WaitForSeconds(0.5f);
             RefillBoard();
@@ -159,11 +180,6 @@ namespace Match3
 
             foreach (Gem g in foundGems)
                 Destroy(g.gameObject);
-        }
-
-        public void FindAllMatches()
-        {
-            gameBoard.FindAllMatches();
         }
 
         #endregion

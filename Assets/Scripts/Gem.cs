@@ -1,13 +1,18 @@
-﻿using Match3;
+﻿using System;
+using Match3;
 using UnityEngine;
 
 public class Gem : MonoBehaviour
 {
+    public static event Action<Gem> OnGemDestroyed;
+    
     [SerializeField] private DestroyPattern destroyPattern;
     [SerializeField] private GameObject destroyEffect;
     [SerializeField] private GemType gemType;
     
     [HideInInspector] public Vector2Int posIndex;
+    
+    [HideInInspector] public int DestroyOrder = 0;
 
     public int scoreValue = 10;
     
@@ -25,6 +30,13 @@ public class Gem : MonoBehaviour
             transform.position = new Vector3(posIndex.x, posIndex.y, 0);
             _gameLogic.SetGem(posIndex.x, posIndex.y, this);
         }
+    }
+
+    public void DestroyGem(bool playEffect = true)
+    {
+        if (playEffect) PlayDestroyEffect();
+        OnGemDestroyed?.Invoke(this);
+        Destroy(this.gameObject);
     }
 
     public void PlayDestroyEffect()

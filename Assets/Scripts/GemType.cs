@@ -1,5 +1,7 @@
 ﻿namespace Match3
 {
+    // Note: Using "Special" enum for now, can be changed to bomb, arrow etc. if necessary
+    // Also Flags can be used
     public enum GemType
     {
         Blue = 0,

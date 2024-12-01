@@ -6,6 +6,7 @@ public class InputHandler : MonoBehaviour
     // Events
     public static event Action<Gem> OnGemSelected;
     public static event Action<Gem, Gem> OnGemsSwipe;
+    public static event Action<Gem> OnGemDeselected;
 
     // Variables
     private Gem firstGem = null;
@@ -42,7 +43,11 @@ public class InputHandler : MonoBehaviour
         
         if (secondGem != null && secondGem != firstGem)
         {
-            OnGemsSwipe?.Invoke(firstGem, secondGem);
+            if (Utility.Vector2Utilities.CellsAreNeighbors(firstGem.posIndex, secondGem.posIndex))
+            {
+                OnGemsSwipe?.Invoke(firstGem, secondGem);
+            }
+            OnGemDeselected?.Invoke(firstGem);
             firstGem = null;
         }
     }
