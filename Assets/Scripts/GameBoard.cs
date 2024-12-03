@@ -1,6 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Match3
@@ -11,45 +13,33 @@ namespace Match3
 
         [SerializeField] private int width = 7;
         [SerializeField] private int height = 7;
-        [SerializeField] private Transform gemsFolder = null;
         [SerializeField] private GameLogic gameLogic = null;
 
         private Gem[,] allGems;
 
         public int Width => width;
         public int Height => height;
-
-        public List<Gem> CurrentMatches { get; private set; } = new List<Gem>();
+        
+        public HashSet<Gem> CurrentMatches { get; private set; } = new HashSet<Gem>();
 
         #endregion
-
+        
         private void OnEnable()
         {
+            // TODO: Remove InputHandler dependency
             InputHandler.OnGemsSwipe += OnGemsSwipe;
         }
 
+        
         private void OnDisable()
         {
+            // TODO: Remove InputHandler dependency
             InputHandler.OnGemsSwipe -= OnGemsSwipe;
         }
 
         public void Setup()
         {
             allGems = new Gem[Width, Height];
-
-            CreateBoardTiles();
-        }
-
-        private void CreateBoardTiles()
-        {
-            for (int x = 0; x < Width; x++)
-            for (int y = 0; y < Height; y++)
-            {
-                Vector2 _pos = new Vector2(x, y);
-                GameObject _bgTile = Instantiate(GameVariables.Instance.bgTilePrefabs, _pos, Quaternion.identity);
-                _bgTile.transform.SetParent(gemsFolder);
-                _bgTile.name = "BG Tile - " + x + ", " + y;
-            }
         }
 
         public bool MatchesAt(Vector2Int _PositionToCheck, Gem _GemToCheck)
@@ -115,64 +105,79 @@ namespace Match3
         {
             return allGems[_X, _Y];
         }
-
+        
         public void FindAllMatches()
         {
             CurrentMatches.Clear();
+            HashSet<Gem> horizontalMatches = new HashSet<Gem>();
+            HashSet<Gem> verticalMatches = new HashSet<Gem>();
+
+            int currentDestroyGroup = 0;
 
             for (int x = 0; x < width; x++)
-            for (int y = 0; y < height; y++)
             {
-                Gem currentGem = allGems[x, y];
-                if (currentGem != null)
+                for (int y = 0; y < height; y++)
                 {
+                    Gem currentGem = allGems[x, y];
+                    if (currentGem == null) continue;
+
+                    // Check horizontal and vertical matches
                     if (x > 0 && x < width - 1)
-                    {
-                        Gem leftGem = allGems[x - 1, y];
-                        Gem rightGem = allGems[x + 1, y];
-                        
-                        if (leftGem != null && rightGem != null)
-                        {
-                            if (leftGem.GemType == currentGem.GemType && rightGem.GemType == currentGem.GemType)
-                            {
-                                CurrentMatches.Add(currentGem);
-                                CurrentMatches.Add(leftGem);
-                                CurrentMatches.Add(rightGem);
-                            }
-                        }
-                    }
+                        CheckMatchAndAssign(allGems[x - 1, y], currentGem, allGems[x + 1, y], horizontalMatches, ref currentDestroyGroup);
 
                     if (y > 0 && y < height - 1)
-                    {
-                        Gem aboveGem = allGems[x, y - 1];
-                        Gem bellowGem = allGems[x, y + 1];
-                        
-                        if (aboveGem != null && bellowGem != null)
-                        {
-                            if (aboveGem.GemType == currentGem.GemType && bellowGem.GemType == currentGem.GemType)
-                            {
-                                CurrentMatches.Add(currentGem);
-                                CurrentMatches.Add(aboveGem);
-                                CurrentMatches.Add(bellowGem);
-                            }
-                        }
-                    }
+                        CheckMatchAndAssign(allGems[x, y - 1], currentGem, allGems[x, y + 1], verticalMatches, ref currentDestroyGroup);
                 }
             }
 
-            if (CurrentMatches.Count > 0)
-                CurrentMatches = CurrentMatches.Distinct().ToList();
+            // Combine matches
+            HashSet<Gem> allMatches = new HashSet<Gem>(horizontalMatches);
+            allMatches.UnionWith(verticalMatches);
 
-            CheckForSpecials();
+            // Add all remaining matches to CurrentMatches
+            CurrentMatches.AddRange(allMatches);
+            
+            IOrderedEnumerable<IGrouping<int, Gem>> groupedByDestroyGroup = CurrentMatches
+                .GroupBy(gem => gem.DestroyGroup)
+                .OrderBy(group => group.Key);
+
+            // int currentDestroyGroupsCount = groupedByDestroyGroup.Count();
+            // if (currentDestroyGroupsCount > 0)
+            // {
+            //     Debug.Log("Destroy groups: " + currentDestroyGroupsCount);
+            // }
+        }
+        
+        private void CheckMatchAndAssign(Gem gem1, Gem gem2, Gem gem3, HashSet<Gem> matches, ref int currentDestroyGroup)
+        {
+            if (gem1 != null && gem2 != null && gem3 != null && gem1.GemType == gem2.GemType && gem2.GemType == gem3.GemType)
+            {
+                matches.Add(gem1);
+                matches.Add(gem2);
+                matches.Add(gem3);
+
+                // Assign or unify groups
+                if (gem1.DestroyGroup == -1 && gem2.DestroyGroup == -1 && gem3.DestroyGroup == -1)
+                {
+                    gem1.DestroyGroup = gem2.DestroyGroup = gem3.DestroyGroup = currentDestroyGroup;
+                    currentDestroyGroup++;
+                }
+                else
+                {
+                    int targetGroup = Math.Max(Math.Max(gem1.DestroyGroup, gem2.DestroyGroup), gem3.DestroyGroup);
+                    if (gem1.DestroyGroup == -1) gem1.DestroyGroup = targetGroup;
+                    if (gem2.DestroyGroup == -1) gem2.DestroyGroup = targetGroup;
+                    if (gem3.DestroyGroup == -1) gem3.DestroyGroup = targetGroup;
+                }
+            }
         }
         
         private void CheckForSpecials()
         {
             HashSet<Vector2Int> checkedPositions = new HashSet<Vector2Int>();
-
-            for (int i = 0; i < CurrentMatches.Count; i++)
+            
+            foreach (Gem gem in CurrentMatches)
             {
-                Gem gem = CurrentMatches[i];
                 int x = gem.posIndex.x;
                 int y = gem.posIndex.y;
 
@@ -197,7 +202,7 @@ namespace Match3
             Gem gem = allGems[x, y];
 
             // Skip null gems or non-special gems
-            if (gem == null || gem.GemType != GemType.Special) return;
+            if (gem == null || gem.GemType.IsSpecial() == false) return;
 
             List<Vector3Int> patternPositions = gem.DestroyPattern?.GetPattern(new Vector2Int(x, y));
 

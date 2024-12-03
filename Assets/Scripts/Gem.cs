@@ -1,25 +1,30 @@
 ﻿using System;
 using Match3;
+using TMPro;
 using UnityEngine;
 
 public class Gem : MonoBehaviour
 {
     public static event Action<Gem> OnGemDestroyed;
     
-    [SerializeField] private DestroyPattern destroyPattern;
-    [SerializeField] private GameObject destroyEffect;
     [SerializeField] private GemType gemType;
     
-    [HideInInspector] public Vector2Int posIndex;
+    [SerializeField] private GemsConfig gemsConfig;
+    [SerializeField] private SpriteRenderer spriteRenderer;
     
+    // TODO: Just for debug, Remove later
+    [SerializeField] private TextMeshPro textMeshPro;
+    
+    [HideInInspector] public Vector2Int posIndex;
     [HideInInspector] public int DestroyOrder = 0;
+    [HideInInspector] public int DestroyGroup = -1;
 
     public int scoreValue = 10;
     
     private GameLogic _gameLogic;
-    
-    public DestroyPattern DestroyPattern { get => destroyPattern; private set => destroyPattern = value; }
+
     public GemType GemType { get => gemType; private set => gemType = value; }
+    public DestroyPattern DestroyPattern => gemsConfig.GetDestroyPattern(gemType);
 
     void Update()
     {
@@ -30,6 +35,8 @@ public class Gem : MonoBehaviour
             transform.position = new Vector3(posIndex.x, posIndex.y, 0);
             _gameLogic.SetGem(posIndex.x, posIndex.y, this);
         }
+        
+        textMeshPro.text = posIndex.ToString();
     }
 
     public void DestroyGem(bool playEffect = true)
@@ -39,9 +46,9 @@ public class Gem : MonoBehaviour
         Destroy(this.gameObject);
     }
 
-    public void PlayDestroyEffect()
+    private void PlayDestroyEffect()
     {
-        Instantiate(destroyEffect, transform.position, Quaternion.identity);
+        Instantiate(gemsConfig.GetDestroyEffect(gemType), transform.position, Quaternion.identity);
     }
 
     public void SetupGem(GameLogic gameLogic, Vector2Int position)

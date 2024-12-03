@@ -24,7 +24,7 @@ namespace Match3
                 }
             }
 
-            return positions.Distinct().ToList();
+            return positions;
         }
     }
 }

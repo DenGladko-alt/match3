@@ -1041,7 +1041,7 @@ MonoBehaviour:
   - {fileID: 8289337781777951430, guid: 473855e3d0d3c8143836b678c9a1b8b5, type: 3}
   - {fileID: 4372168081761593873, guid: 91ba2370328500d4db689dad894b1602, type: 3}
   bonusAmount: 0.5
-  bombChance: 6
+  bombChance: 10
   dropHeight: 1
   gemSpeed: 7
   scoreSpeed: 5
@@ -1190,6 +1190,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1879498210}
   - component: {fileID: 1879498211}
+  - component: {fileID: 1879498212}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -1230,5 +1231,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 7
   height: 7
-  gemsFolder: {fileID: 1178507935}
   gameLogic: {fileID: 376092241}
+--- !u!114 &1879498212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879498208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab154db5d6f2add44bd15aae8539473a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameBoard: {fileID: 1879498211}
+  boardTilesHolder: {fileID: 1178507935}

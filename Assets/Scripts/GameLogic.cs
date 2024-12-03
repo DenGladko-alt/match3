@@ -52,18 +52,19 @@ namespace Match3
         private IEnumerator DestroyMatchedGemsCoroutine()
         {
             // Get specials gems to destroy them later
-            List<Gem> specialGems = new List<Gem>();
+            HashSet<Gem> specialGems = new HashSet<Gem>();
 
-            for (int i = 0; i < gameBoard.CurrentMatches.Count; i++)
+            foreach (Gem gem in gameBoard.CurrentMatches)
             {
-                if (gameBoard.CurrentMatches[i].GemType == GemType.Special)
+                if (gem.GemType == GemType.Bomb)
                 {
-                    specialGems.Add(gameBoard.CurrentMatches[i]);
-                    gameBoard.CurrentMatches.Remove(gameBoard.CurrentMatches[i]);
+                    specialGems.Add(gem);
                 }
             }
             
-            var groupedByDistance = gameBoard.CurrentMatches
+            gameBoard.CurrentMatches.RemoveWhere(gem => specialGems.Contains(gem));
+            
+            IOrderedEnumerable<IGrouping<int, Gem>> groupedByDistance = gameBoard.CurrentMatches
                 .GroupBy(gem => gem.DestroyOrder)
                 .OrderBy(group => group.Key);
             
