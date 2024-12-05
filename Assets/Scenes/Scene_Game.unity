@@ -1232,6 +1232,7 @@ MonoBehaviour:
   width: 7
   height: 7
   gameLogic: {fileID: 376092241}
+  gemSpawnManager: {fileID: 53665406}
 --- !u!114 &1879498212
 MonoBehaviour:
   m_ObjectHideFlags: 0

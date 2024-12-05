@@ -32,6 +32,16 @@ PrefabInstance:
         type: 2}
     - target: {fileID: -4313073739878660840, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -4313073739878660840, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -4313073739878660840, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
       propertyPath: m_SpriteTilingProperty.oldSize.x
       value: 1
       objectReference: {fileID: 0}
@@ -43,7 +53,17 @@ PrefabInstance:
     - target: {fileID: 7667143225876670874, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}
       propertyPath: m_Name
-      value: Bomb Variant
+      value: Gem - Bomb Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 7667143225876670884, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
+      propertyPath: m_Size.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7667143225876670884, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
+      propertyPath: m_Size.y
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7667143225876670884, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}

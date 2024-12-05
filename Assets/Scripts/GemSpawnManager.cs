@@ -29,6 +29,21 @@ namespace Match3
             }
         }
 
+        public void SpawnGem(GemType gemType, Vector2Int position)
+        {
+            Gem gemToSpawn = null;
+            if (gemType == GemType.Bomb)
+            {
+                gemToSpawn = Instantiate(GameVariables.Instance.bomb, new Vector3(position.x, position.y), Quaternion.identity, gemsHolder);
+            }
+
+            if (gemToSpawn == null) return;
+            
+            gemToSpawn.name = $"Gem [{position.x},{position.y}]";
+            gameBoard.SetGem(position.x, position.y, gemToSpawn);
+            gemToSpawn.SetupGem(position);
+        }
+
         public void SpawnGem(Vector2Int _Position, Gem _GemToSpawn, GameLogic gameLogic)
         {
             if (Random.Range(0, 100f) < GameVariables.Instance.bombChance)
@@ -39,7 +54,7 @@ namespace Match3
             _gem.transform.SetParent(gemsHolder);
             _gem.name = $"Gem [{_Position.x},{_Position.y}]";
             gameBoard.SetGem(_Position.x, _Position.y, _gem);
-            _gem.SetupGem(gameLogic, _Position);
+            _gem.SetupGem(_Position);
         }
     }
 }

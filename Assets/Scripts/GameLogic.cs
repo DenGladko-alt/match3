@@ -11,12 +11,20 @@ namespace Match3
     {
         [SerializeField] private GameBoard gameBoard;
         [SerializeField] private GemSpawnManager gemSpawnManager;
-
+        
+        public GameBoard GameBoard => gameBoard;
         public GameState CurrentState { get; private set; } = GameState.Move;
+
+        [SerializeField, Range(0, 1f)] private float timeSpeed = 1f;
 
         #region MonoBehaviour
 
         private void Awake() => Init();
+
+        private void Update()
+        {
+            Time.timeScale = timeSpeed;
+        }
 
         #endregion
 
@@ -28,16 +36,6 @@ namespace Match3
             gemSpawnManager.Setup(this);
         }
 
-        public void SetGem(int _X, int _Y, Gem _Gem)
-        {
-            gameBoard.SetGem(_X, _Y, _Gem);
-        }
-
-        public Gem GetGem(int _X, int _Y)
-        {
-            return gameBoard.GetGem(_X, _Y);
-        }
-
         public void SetState(GameState _CurrentState)
         {
             CurrentState = _CurrentState;
@@ -47,45 +45,84 @@ namespace Match3
         {
             StartCoroutine(DestroyMatchedGemsCoroutine());
         }
-
         
         private IEnumerator DestroyMatchedGemsCoroutine()
         {
             // Get specials gems to destroy them later
-            HashSet<Gem> specialGems = new HashSet<Gem>();
+            //HashSet<Gem> specialGems = new HashSet<Gem>();
 
-            foreach (Gem gem in gameBoard.CurrentMatches)
+            // foreach (Gem gem in gameBoard.CurrentMatches)
+            // {
+            //     if (gem.GemType == GemType.Bomb)
+            //     {
+            //         specialGems.Add(gem);
+            //     }
+            // }
+            //
+            // gameBoard.CurrentMatches.RemoveWhere(gem => specialGems.Contains(gem));
+            
+            // IOrderedEnumerable<IGrouping<int, Gem>> groupedByDistance = gameBoard.CurrentMatches
+            //     .GroupBy(gem => gem.DestroyOrder)
+            //     .OrderBy(group => group.Key);
+            
+            //List<IGrouping<int, Gem>> groupedMatchesList = gameBoard.GroupedMatches.ToList();
+            List<IGrouping<int, Gem>> groupedMatchesList = gameBoard.GroupedMatches.ToList();
+
+            for (int i = 0; i < groupedMatchesList.Count; i++)
             {
-                if (gem.GemType == GemType.Bomb)
+                IGrouping<int, Gem> group = groupedMatchesList[i];
+
+                // Check if the group has 4 or more matches
+                bool isSpecialGroup = group.Count() >= GLOBAL_VARIABLES.SPECIAL_SPAWN_COUNT_RULE;
+
+                var groupArray = group.ToArray(); // Convert the group to an array to avoid repeated enumeration
+                for (int j = 0; j < groupArray.Length; j++)
                 {
-                    specialGems.Add(gem);
-                }
-            }
-            
-            gameBoard.CurrentMatches.RemoveWhere(gem => specialGems.Contains(gem));
-            
-            IOrderedEnumerable<IGrouping<int, Gem>> groupedByDistance = gameBoard.CurrentMatches
-                .GroupBy(gem => gem.DestroyOrder)
-                .OrderBy(group => group.Key);
-            
-            // Destroy simple gems
-            for (int i = 0; i < groupedByDistance.Count(); i++)
-            {
-                // Destroy all gems in the current group
-                foreach (var gem in groupedByDistance.ElementAt(i))
-                {
+                    Gem gem = groupArray[j];
+                    if (gem == null) continue;
+
+                    bool movedByPlayer = gem.MovedByPlayer;
+                    Vector2Int posIndex = gem.PosIndex;
+
                     DestroyGem(gem);
-                }
 
-                // Wait before processing the next group
-                // TODO: Change to config file or something
-                yield return new WaitForSeconds(0.25f);
+                    // Spawn a special gem only if the group is special and the gem was moved by the player
+                    if (isSpecialGroup && movedByPlayer)
+                    {
+                        gemSpawnManager.SpawnGem(GemType.Bomb, posIndex);
+                        isSpecialGroup = false; // Spawn only one special gem per group
+                    }
+                }
             }
 
-            // Destroy special gems
-            foreach (var gem in specialGems)
+            foreach (var gem in gameBoard.allGems)
             {
-                DestroyGem(gem);
+                if (gem == null) continue;
+                
+                gem.MovedByPlayer = false;
+            }
+            
+            // TODO: Move to config
+            yield return new WaitForSeconds(0.25f);
+
+            if (gameBoard.MarkedBySpecials.Count > 0)
+            {
+                IOrderedEnumerable<IGrouping<int, Gem>> groupedByDistance = gameBoard.MarkedBySpecials
+                    .GroupBy(gem => gem.DestroyOrder)
+                    .OrderBy(group => group.Key);
+
+                foreach (var gem in groupedByDistance)
+                {
+                    for (int i = 0; i < gem.Count(); i++)
+                    {
+                        if (gameBoard.MatchedGems.Contains(gem.ElementAt(i))) continue;
+                        
+                        DestroyGem(gem.ElementAt(i));
+                    }
+                
+                    // TODO: Move to config
+                    yield return new WaitForSeconds(1f);
+                }
             }
             
             StartCoroutine(DecreaseRowCoroutine());
@@ -95,16 +132,17 @@ namespace Match3
         {
             if (gem != null)
             {
-                Vector2Int gemPos = new Vector2Int(gem.posIndex.x, gem.posIndex.y);
+                Vector2Int gemPos = new Vector2Int(gem.PosIndex.x, gem.PosIndex.y);
                 gem.DestroyGem();
-                SetGem(gemPos.x, gemPos.y, null);
+                gameBoard.SetGem(gemPos.x, gemPos.y, null);
             }
         }
 
         private IEnumerator DecreaseRowCoroutine()
         {
-            yield return new WaitForSeconds(.2f);
-
+            // TODO: Time delay move to config
+            yield return new WaitForSeconds(0.25f);
+            
             int nullCounter = 0;
             for (int x = 0; x < gameBoard.Width; x++)
             {
@@ -117,9 +155,9 @@ namespace Match3
                     }
                     else if (nullCounter > 0)
                     {
-                        _curGem.posIndex.y -= nullCounter;
-                        SetGem(x, y - nullCounter, _curGem);
-                        SetGem(x, y, null);
+                        _curGem.PosIndex.y -= nullCounter;
+                        gameBoard.SetGem(x, y - nullCounter, _curGem);
+                        gameBoard.SetGem(x, y, null);
                     }
                 }
 
@@ -131,17 +169,22 @@ namespace Match3
 
         private IEnumerator FilledBoardCoroutine()
         {
+            // TODO: Time delay move to config
             yield return new WaitForSeconds(0.5f);
             RefillBoard();
+            // TODO: Time delay move to config
             yield return new WaitForSeconds(0.5f);
-            gameBoard.FindAllMatches();
-            if (gameBoard.CurrentMatches.Count > 0)
+            
+            // Wait and destroy matches if any
+            if (gameBoard.FindAllMatches())
             {
+                // TODO: Time delay move to config
                 yield return new WaitForSeconds(0.5f);
                 DestroyMatches();
             }
             else
             {
+                // TODO: Time delay move to config
                 yield return new WaitForSeconds(0.5f);
                 CurrentState = GameState.Move;
             }
@@ -180,7 +223,9 @@ namespace Match3
             }
 
             foreach (Gem g in foundGems)
+            {
                 Destroy(g.gameObject);
+            }
         }
 
         #endregion

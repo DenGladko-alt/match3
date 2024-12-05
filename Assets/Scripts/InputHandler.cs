@@ -43,7 +43,7 @@ public class InputHandler : MonoBehaviour
         
         if (secondGem != null && secondGem != firstGem)
         {
-            if (Utility.Vector2Utilities.CellsAreNeighbors(firstGem.posIndex, secondGem.posIndex))
+            if (Utility.Vector2Utilities.CellsAreNeighbors(firstGem.PosIndex, secondGem.PosIndex))
             {
                 OnGemsSwipe?.Invoke(firstGem, secondGem);
             }

@@ -6,6 +6,7 @@ namespace Match3
     [CreateAssetMenu(fileName = "GemsConfig", menuName = "Data/Gems Config", order = 0)]
     public class GemsConfig : ScriptableObject
     {
+        // TODO: Make dictionary with display in Inspector
         [SerializeField] public GemConfig[] gemConfigs;
         
         public Sprite GetSprite(GemType gemType)
@@ -18,8 +19,8 @@ namespace Match3
                 }
             }
 
-            Debug.LogWarning($"Sprite for GemType {gemType} not found.");
-            return null;
+            Debug.LogError($"Sprite for GemType {gemType} not found.");
+            return gemConfigs[0].sprite;
         }
 
         public DestroyPattern GetDestroyPattern(GemType gemType)
@@ -32,8 +33,8 @@ namespace Match3
                 }
             }
 
-            Debug.LogWarning($"Destroy pattern for GemType {gemType} not found.");
-            return null;
+            Debug.LogError($"Destroy pattern for GemType {gemType} not found.");
+            return gemConfigs[0].destroyPattern;
         }
 
         public GameObject GetDestroyEffect(GemType gemType)
@@ -46,8 +47,8 @@ namespace Match3
                 }
             }
 
-            Debug.LogWarning($"Destroy effect for GemType {gemType} not found.");
-            return null;
+            Debug.LogError($"Destroy effect for GemType {gemType} not found.");
+            return gemConfigs[0].destroyEffect;
         }
     }
 

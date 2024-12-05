@@ -3,6 +3,10 @@ using Match3;
 using TMPro;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class Gem : MonoBehaviour
 {
     public static event Action<Gem> OnGemDestroyed;
@@ -15,35 +19,50 @@ public class Gem : MonoBehaviour
     // TODO: Just for debug, Remove later
     [SerializeField] private TextMeshPro textMeshPro;
     
-    [HideInInspector] public Vector2Int posIndex;
-    [HideInInspector] public int DestroyOrder = 0;
-    [HideInInspector] public int DestroyGroup = -1;
+    //[HideInInspector] 
+    public Vector2Int PosIndex;
+    //[HideInInspector] 
+    public int DestroyOrder = 0;
+    [HideInInspector] public int MergeGroup = -1;
+    [HideInInspector] public bool MovedByPlayer = false;
 
     public int scoreValue = 10;
-    
-    private GameLogic _gameLogic;
 
-    public GemType GemType { get => gemType; private set => gemType = value; }
+    public GemType GemType => gemType;
     public DestroyPattern DestroyPattern => gemsConfig.GetDestroyPattern(gemType);
+
+    #region Editor
+
+#if UNITY_EDITOR
+    public void OnValidate()
+    {
+        EditorApplication.delayCall += () =>
+        {
+            if (spriteRenderer!=null)
+                spriteRenderer.sprite = gemsConfig.GetSprite(gemType);
+        };
+    }
+#endif
+
+    #endregion
 
     void Update()
     {
-        if (Vector2.Distance(transform.position, posIndex) > 0.01f)
-            transform.position = Vector2.Lerp(transform.position, posIndex, GameVariables.Instance.gemSpeed * Time.deltaTime);
+        if (Vector2.Distance(transform.position, PosIndex) > 0.01f)
+            transform.position = Vector2.Lerp(transform.position, PosIndex, GameVariables.Instance.gemSpeed * Time.deltaTime);
         else
         {
-            transform.position = new Vector3(posIndex.x, posIndex.y, 0);
-            _gameLogic.SetGem(posIndex.x, posIndex.y, this);
+            transform.position = new Vector3(PosIndex.x, PosIndex.y, 0);
         }
         
-        textMeshPro.text = posIndex.ToString();
+        textMeshPro.text = PosIndex.ToString();
     }
 
     public void DestroyGem(bool playEffect = true)
     {
         if (playEffect) PlayDestroyEffect();
         OnGemDestroyed?.Invoke(this);
-        Destroy(this.gameObject);
+        Destroy(gameObject);
     }
 
     private void PlayDestroyEffect()
@@ -51,9 +70,8 @@ public class Gem : MonoBehaviour
         Instantiate(gemsConfig.GetDestroyEffect(gemType), transform.position, Quaternion.identity);
     }
 
-    public void SetupGem(GameLogic gameLogic, Vector2Int position)
+    public void SetupGem(Vector2Int position)
     {
-        posIndex = position;
-        _gameLogic = gameLogic;
+        PosIndex = position;
     }
 }

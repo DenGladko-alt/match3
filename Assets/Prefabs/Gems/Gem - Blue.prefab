@@ -275,10 +275,10 @@ MonoBehaviour:
   gemsConfig: {fileID: 11400000, guid: a405a0b99794a3048a053d4496dd4c75, type: 2}
   spriteRenderer: {fileID: 7667143225876670884}
   textMeshPro: {fileID: 5979283876395840263}
-  posIndex: {x: 0, y: 0}
+  PosIndex: {x: 0, y: 0}
   DestroyOrder: 0
-  DestroyGroup: -1
-  isSpecial: 0
+  MergeGroup: -1
+  MovedByPlayer: 0
   scoreValue: 10
 --- !u!61 &-4313073739878660840
 BoxCollider2D:
