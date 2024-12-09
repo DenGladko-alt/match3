@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b0a67d515714222b90511049fbce6e8, type: 3}
+  m_Name: GameSettings
+  m_EditorClassIdentifier: 
+  ScoreForDestroyedGem: 10
+  GemDropHeight: 1
+  BoardBackgroundTilesPrefab: {fileID: 2914066502361773997, guid: 3f39182b81f944a4d93213431acb41c3,
+    type: 3}
+  GemSpeed: 5
+  SimpleGemsDestructionDelay: 0.15
+  SpecialGemsDestructionDelay: 0.1
+  FallingGemsDelay: 0.25
+  FallingGemsSpeed: 0.1
+  ScoresAnimationSpeed: 0.2
+  BombPrefab: {fileID: 7728721766547317714, guid: aa0291e650b382941875040db9e8a232,
+    type: 3}
+  BombSpawnCountRule: 4

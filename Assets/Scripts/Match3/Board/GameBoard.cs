@@ -2,33 +2,49 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using Utility;
 using Random = UnityEngine.Random;
 
 namespace Match3
 {
-    public class GameBoard : MonoBehaviour
+    public class GameBoard : MonoBehaviourService<GameBoard>
     {
-        #region Variables
-
-        [SerializeField] private int width = 7;
-        [SerializeField] private int height = 7;
-        [SerializeField] private GameLogic gameLogic;
-        [SerializeField] private GemSpawnManager gemSpawnManager;
-
-        private int currentDestroyGroup;
+        public event Action OnGameBoardSetup;
         
+        #region Variables
+        
+        private int currentDestroyGroup;
         private HashSet<Gem> matchedGems = new HashSet<Gem>();
-        private IOrderedEnumerable<IGrouping<int, Gem>> groupedMatches;
+        private Dictionary<int, HashSet<Gem>> groupedMatches;
         private readonly HashSet<Gem> markedForDestruction = new HashSet<Gem>();
         
-        public int Width => width;
-        public int Height => height;
+        private GemSpawnManager gemSpawnManager;
+        private GameVariablesService gameVariables;
+        
+        public int Width { get; private set; }
+        public int Height { get; private set; }
         public Gem[,] AllGems { get; private set; }
 
         #endregion
 
         #region MonoBehaviour
+
+        private void Start()
+        {
+            ServiceManager.Instance.TryGet(out gemSpawnManager);
+            ServiceManager.Instance.TryGet(out gameVariables);
+            
+            Width = gameVariables.LevelConfig.BoardWidth;
+            Height = gameVariables.LevelConfig.BoardHeight;
+            
+            AllGems = new Gem[Width, Height];
+            
+            OnGameBoardSetup?.Invoke();
+            
+            gemSpawnManager.Setup(this);
+        }
 
         private void OnEnable()
         {
@@ -43,11 +59,6 @@ namespace Match3
 
         #endregion
 
-        public void Setup()
-        {
-            AllGems = new Gem[Width, Height];
-        }
-
         #region Gems swapping
 
         private void OnGemsSwipe(Gem firstGem, Gem secondGem)
@@ -57,12 +68,9 @@ namespace Match3
 
         private IEnumerator SwapGemsCoroutine(Gem firstGem, Gem secondGem)
         {
-            gameLogic.SetState(GameState.Wait);
-            
             SwapGems(firstGem, secondGem, true);
-
-            // TODO: Time delay move to config
-            yield return new WaitForSeconds(.5f);
+            
+            yield return new WaitForSeconds(gameVariables.GameSettings.SwapDuration);
 
             if (FindMatchingGroups())
             {
@@ -81,10 +89,12 @@ namespace Match3
             AllGems[secondGem.PosIndex.x, secondGem.PosIndex.y] = firstGem;
             firstGem.PosIndex = secondGem.PosIndex;
             firstGem.MovedByPlayer = markAsMovedByPlayer;
+            firstGem.MoveToPositionIndex();
 
             AllGems[firstGemPosition.x, firstGemPosition.y] = secondGem;
             secondGem.PosIndex = firstGemPosition;
             secondGem.MovedByPlayer = markAsMovedByPlayer;
+            secondGem.MoveToPositionIndex();
         }
         
         #endregion
@@ -93,73 +103,67 @@ namespace Match3
 
         private bool FindMatchingGroups()
         {
+            markedForDestruction.Clear();
+            
             matchedGems = Match3Utilities.GetMatchingGemsFromBoard(this);
             groupedMatches = Match3Utilities.GetGroupedMatchingGems(matchedGems);
+            markedForDestruction.AddRange(matchedGems);
             
             HashSet<Gem> specialGems = Match3Utilities.GetSpecialGemsFromHashSet(matchedGems);
             
-            markedForDestruction.Clear();
             FindGemsDestroyedBySpecialGems(specialGems);
             
             return groupedMatches.Any();
         }
-        
+
         private void FindGemsDestroyedBySpecialGems(HashSet<Gem> specialGems)
         {
-            if (specialGems.Count == 0) return;
-            
-            foreach (Gem gem in specialGems.ToList())
+            while (true)
             {
-                List<Vector3Int> patternPositions = gem.DestroyPattern?.GetPattern(gem.PosIndex);
-                
-                if (patternPositions == null) return;
+                if (specialGems.Count == 0) return;
 
-                int maxDestroyRadius = 0;
-                
-                for (int i = 0; i < patternPositions.Count; i++)
+                HashSet<Gem> newFoundSpecialGems = new HashSet<Gem>();
+
+                foreach (Gem gem in specialGems)
                 {
-                    Vector3Int pos = patternPositions[i];
+                    List<Vector3Int> patternPositions = gem.DestroyPattern?.GetPattern(gem.PosIndex);
 
-                    if (pos.x < 0 || pos.x >= width || pos.y < 0 || pos.y >= height) continue;
+                    if (patternPositions == null) return;
 
-                    Gem gemToDestroy = AllGems[pos.x, pos.y];
+                    float accumulatedDelay = 0;
 
-                    if (gemToDestroy == null) continue;
-
-                    if (matchedGems.Contains(gemToDestroy)) continue;
-
-                    if (gemToDestroy.DestroyOrder > 0)
+                    for (int i = 0; i < patternPositions.Count; i++)
                     {
-                        gemToDestroy.DestroyOrder = Math.Min(gemToDestroy.DestroyOrder, patternPositions[i].z + gem.DestroyOrder);
-                    }
-                    else
-                    {
-                        gemToDestroy.DestroyOrder = patternPositions[i].z + gem.DestroyOrder;
-                    }
-                    
-                    if (markedForDestruction.Add(gemToDestroy))
-                    {
-                        maxDestroyRadius = Math.Max(maxDestroyRadius, gemToDestroy.DestroyOrder);
-                        if (gemToDestroy.GemType.IsSpecial())
+                        Vector3Int pos = patternPositions[i];
+
+                        if (pos.x < 0 || pos.x >= Width || pos.y < 0 || pos.y >= Height) continue;
+
+                        Gem gemToDestroy = AllGems[pos.x, pos.y];
+
+                        if (!gemToDestroy) continue;
+
+                        if (markedForDestruction.Contains(gemToDestroy))
                         {
-                            specialGems.Add(gemToDestroy);
-                            FindGemsDestroyedBySpecialGems(specialGems);
+                            gemToDestroy.DestroyDelay = Math.Min(gemToDestroy.DestroyDelay, patternPositions[i].z * gameVariables.GameSettings.SimpleGemsDestructionDelay + gem.DestroyDelay);
                         }
-                    }
-                }
-            }
-            
-            foreach (Gem gem in specialGems)
-            {
-                gem.DestroyOrder += gem.DestroyPattern.Radius;
-            }
-        }
+                        else
+                        {
+                            gemToDestroy.DestroyDelay = patternPositions[i].z * gameVariables.GameSettings.SimpleGemsDestructionDelay + gem.DestroyDelay;
+                            markedForDestruction.Add(gemToDestroy);
 
-        private void AddDestructionDelayToGems()
-        {
-            foreach (Gem gem in markedForDestruction)
-            {
-                gem.DestroyDelay = gem.DestroyOrder * 0.25f;
+                            if (gemToDestroy.IsSpecial())
+                            {
+                                newFoundSpecialGems.Add(gemToDestroy);
+                            }
+                        }
+
+                        accumulatedDelay = Math.Max(accumulatedDelay, gemToDestroy.DestroyDelay);
+                    }
+
+                    gem.DestroyDelay = accumulatedDelay + gameVariables.GameSettings.SpecialGemsDestructionDelay;
+                }
+
+                specialGems = newFoundSpecialGems;
             }
         }
 
@@ -169,7 +173,20 @@ namespace Match3
 
         private void DestroyMatches()
         {
-            StartCoroutine(DestroyMatchedGemsCoroutine());
+            StartCoroutine(DestroyMarkedGemsCoroutine());
+        }
+
+        // Can be remade to return Special GemType by rule
+        private bool ShouldSpawnSpecialGem(Gem gem)
+        {
+            if (groupedMatches.TryGetValue(gem.MergeGroup, out HashSet<Gem> gemsInGroup))
+            {
+                if (gemsInGroup.Count >= gameVariables.GameSettings.BombSpawnCountRule)
+                {
+                    return gem.MovedByPlayer;
+                }
+            }
+            return false;
         }
         
         private IEnumerator DestroyMarkedGemsCoroutine()
@@ -181,16 +198,19 @@ namespace Match3
             while (gemsToDestroy.Count > 0)
             {
                 elapsedTime += Time.deltaTime;
-
-                // Iterate through a copy to avoid modifying the collection while iterating
-                foreach (Gem gem in gemsToDestroy.ToList())
+                
+                foreach (Gem gem in gemsToDestroy)
                 {
-                    if (gem == null) continue;
-
-                    // Check if the gem's destruction delay has elapsed
+                    if (!gem) continue;
+                    
                     if (elapsedTime >= gem.DestroyDelay)
                     {
+                        bool shouldSpawnGem = ShouldSpawnSpecialGem(gem);
                         DestroyGem(gem);
+                        if (shouldSpawnGem)
+                        {
+                            gemSpawnManager.SpawnGem(GemType.Bomb, gem.PosIndex, this);
+                        }
                         destroyedGems.Add(gem);
                     }
                 }
@@ -205,75 +225,13 @@ namespace Match3
 
                 yield return null; // Wait until the next frame
             }
-        }
-        
-        private IEnumerator DestroyMatchedGemsCoroutine()
-        {
-            List<IGrouping<int, Gem>> groupedMatchesList = groupedMatches.ToList();
-
-            for (int i = 0; i < groupedMatchesList.Count; i++)
-            {
-                IGrouping<int, Gem> group = groupedMatchesList[i];
-
-                // Check if the group has 4 or more matches
-                bool isSpecialGroup = group.Count() >= GLOBAL_VARIABLES.SPECIAL_SPAWN_COUNT_RULE;
-
-                var groupArray = group.ToArray(); // Convert the group to an array to avoid repeated enumeration
-                for (int j = 0; j < groupArray.Length; j++)
-                {
-                    Gem gem = groupArray[j];
-                    if (gem == null) continue;
-
-                    bool movedByPlayer = gem.MovedByPlayer;
-                    Vector2Int posIndex = gem.PosIndex;
-
-                    DestroyGem(gem);
-
-                    // Spawn a special gem only if the group is special and the gem was moved by the player
-                    if (isSpecialGroup && movedByPlayer)
-                    {
-                        gemSpawnManager.SpawnGem(GemType.Bomb, posIndex);
-                        isSpecialGroup = false; // Spawn only one special gem per group
-                    }
-                }
-            }
-
-            foreach (var gem in AllGems)
-            {
-                if (gem == null) continue;
-                
-                gem.MovedByPlayer = false;
-            }
-            
-            // TODO: Move to config
-            yield return new WaitForSeconds(0.25f);
-
-            if (markedForDestruction.Count > 0)
-            {
-                IOrderedEnumerable<IGrouping<int, Gem>> groupedByDistance = markedForDestruction
-                    .GroupBy(gem => gem.DestroyOrder)
-                    .OrderBy(group => group.Key);
-
-                foreach (var gem in groupedByDistance)
-                {
-                    for (int i = 0; i < gem.Count(); i++)
-                    {
-                        if (matchedGems.Contains(gem.ElementAt(i))) continue;
-                        
-                        DestroyGem(gem.ElementAt(i));
-                    }
-                
-                    // TODO: Move to config
-                    yield return new WaitForSeconds(1f);
-                }
-            }
             
             StartCoroutine(DecreaseRowCoroutine());
         }
         
         private void DestroyGem(Gem gem)
         {
-            if (gem == null) return;
+            if (!gem) return;
             
             Vector2Int gemPos = new Vector2Int(gem.PosIndex.x, gem.PosIndex.y);
             gem.DestroyGem();
@@ -293,8 +251,9 @@ namespace Match3
                     Gem _curGem = AllGems[x, y];
                     if (_curGem == null)
                     {
-                        int gemToUse = Random.Range(0, GameVariables.Instance.gems.Length);
-                        gemSpawnManager.SpawnGem(new Vector2Int(x, y), GameVariables.Instance.gems[gemToUse]);
+                        int gemToUse = Random.Range(0, gameVariables.LevelConfig.Gems.Length);
+                        gemSpawnManager.SpawnGem(new Vector2Int(x, y + gameVariables.GameSettings.GemDropHeight), 
+                            gameVariables.LevelConfig.Gems[gemToUse], this);
                     }
                 }
             }
@@ -304,8 +263,7 @@ namespace Match3
         
         private IEnumerator DecreaseRowCoroutine()
         {
-            // TODO: Time delay move to config
-            yield return new WaitForSeconds(0.25f);
+            yield return new WaitForSeconds(gameVariables.GameSettings.FallingGemsDelay);
             
             int nullCounter = 0;
             for (int x = 0; x < Width; x++)
@@ -313,13 +271,14 @@ namespace Match3
                 for (int y = 0; y < Height; y++)
                 {
                     Gem curGem = AllGems[x, y];
-                    if (curGem == null)
+                    if (!curGem)
                     {
                         nullCounter++;
                     }
                     else if (nullCounter > 0)
                     {
                         curGem.PosIndex.y -= nullCounter;
+                        curGem.MoveToPositionIndex();
                         AllGems[x, y - nullCounter] = curGem;
                         AllGems[x, y] = null;
                     }
@@ -328,30 +287,21 @@ namespace Match3
                 nullCounter = 0;
             }
 
-            StartCoroutine(FilledBoardCoroutine());
+            StartCoroutine(FillBoardCoroutine());
         }
 
-        private IEnumerator FilledBoardCoroutine()
+        private IEnumerator FillBoardCoroutine()
         {
             // TODO: Time delay move to config
             yield return new WaitForSeconds(0.5f);
             RefillBoard();
             // TODO: Time delay move to config
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(1f);
             
             // Wait and destroy matches if any
             if (FindMatchingGroups())
             {
-                // TODO: Time delay move to config
-                yield return new WaitForSeconds(0.5f);
                 DestroyMatches();
-            }
-            else
-            {
-                // TODO: Time delay move to config
-                yield return new WaitForSeconds(0.5f);
-                // TODO: Make event based
-                gameLogic.SetState(GameState.Move);
             }
         }
         

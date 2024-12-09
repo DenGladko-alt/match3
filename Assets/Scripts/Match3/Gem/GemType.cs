@@ -11,6 +11,6 @@
         Purple = 5,
         
         // Specials
-        Bomb = 10,
-    };
+        Bomb = 10
+    }
 }

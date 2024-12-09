@@ -1,26 +1,57 @@
-using Match3;
+using System;
 using UnityEngine;
+using Utility;
 
-public class GameBoardView : MonoBehaviour
+namespace Match3
 {
-    [SerializeField] private GameBoard gameBoard;
-    [SerializeField] private Transform boardTilesHolder = null;
-
-    private void Start()
+    public class GameBoardView : MonoBehaviour
     {
-        CreateBoardTiles();
-    }
+        [SerializeField] private GameBoard gameBoard;
+        [SerializeField] private Transform boardTilesHolder;
+        
+        private GameVariablesService gameVariables;
+        
+        private bool initialized = false;
 
-    private void CreateBoardTiles()
-    {
-        for (int x = 0; x < gameBoard.Width; x++)
+        private void OnEnable()
         {
-            for (int y = 0; y < gameBoard.Height; y++)
+            if (!initialized)
             {
-                Vector2 _pos = new Vector2(x, y);
-                GameObject _bgTile = Instantiate(GameVariables.Instance.bgTilePrefabs, _pos, Quaternion.identity);
-                _bgTile.transform.SetParent(boardTilesHolder);
-                _bgTile.name = "BG Tile - " + x + ", " + y;
+                gameBoard.OnGameBoardSetup += OnGameBoardSetup;
+            }
+        }
+
+        private void OnDisable()
+        {
+            gameBoard.OnGameBoardSetup -= OnGameBoardSetup;
+        }
+
+        private void OnGameBoardSetup()
+        {
+            CreateBoardTiles();
+            initialized = true;
+        }
+
+        private void Start()
+        {
+            ServiceManager.Instance.TryGet(out gameVariables);
+        }
+
+        private void CreateBoardTiles()
+        {
+            if (gameVariables == null) ServiceManager.Instance.TryGet(out gameVariables);
+            
+            for (int x = 0; x < gameBoard.Width; x++)
+            {
+                for (int y = 0; y < gameBoard.Height; y++)
+                {
+                    Vector2 _pos = new Vector2(x, y);
+                    GameObject _bgTile = Instantiate(gameVariables.GameSettings.BoardBackgroundTilesPrefab, 
+                        _pos, Quaternion.identity);
+                    
+                    _bgTile.transform.SetParent(boardTilesHolder);
+                    _bgTile.name = "BG Tile - " + x + ", " + y;
+                }
             }
         }
     }

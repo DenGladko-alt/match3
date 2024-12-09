@@ -10,7 +10,7 @@ namespace Match3
         [SerializeField] private TextMeshProUGUI scoreText;
         [SerializeField] private float updateDuration = 1f;
         
-        private int currentScore = 0;
+        private int currentScore;
         private Coroutine scoreRoutine;
 
         private void Start()
@@ -32,10 +32,10 @@ namespace Match3
         {
             if (scoreRoutine != null) StopCoroutine(scoreRoutine);
             
-            scoreRoutine = StartCoroutine(AnimateScore(currentScore, newScore, updateDuration));
+            scoreRoutine = StartCoroutine(AnimateScore(currentScore, newScore));
         }
         
-        private IEnumerator AnimateScore(int startScore, int endScore, float duration)
+        private IEnumerator AnimateScore(int startScore, int endScore)
         {
             float elapsedTime = 0f;
         

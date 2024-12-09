@@ -1,14 +1,13 @@
-﻿using UnityEngine;
-using UnityEngine.Serialization;
+﻿using System;
+using UnityEngine;
 
 namespace Match3
 {
     [CreateAssetMenu(fileName = "GemsConfig", menuName = "Data/Gems Config", order = 0)]
     public class GemsConfig : ScriptableObject
     {
-        // TODO: Make dictionary with display in Inspector
         [SerializeField] public GemConfig[] gemConfigs;
-        
+
         public Sprite GetSprite(GemType gemType)
         {
             for (int i = 0; i < gemConfigs.Length; i++)
@@ -19,8 +18,7 @@ namespace Match3
                 }
             }
 
-            Debug.LogError($"Sprite for GemType {gemType} not found.");
-            return gemConfigs[0].sprite;
+            throw new InvalidOperationException($"Sprite for GemType {gemType} not found.");
         }
 
         public DestroyPattern GetDestroyPattern(GemType gemType)
@@ -33,8 +31,7 @@ namespace Match3
                 }
             }
 
-            Debug.LogError($"Destroy pattern for GemType {gemType} not found.");
-            return gemConfigs[0].destroyPattern;
+            throw new InvalidOperationException($"Destroy pattern for GemType {gemType} not found.");
         }
 
         public GameObject GetDestroyEffect(GemType gemType)
@@ -47,17 +44,16 @@ namespace Match3
                 }
             }
 
-            Debug.LogError($"Destroy effect for GemType {gemType} not found.");
-            return gemConfigs[0].destroyEffect;
+            throw new InvalidOperationException($"Destroy effect for GemType {gemType} not found.");
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public struct GemConfig
     {
         public GemType gemType;
-        public DestroyPattern destroyPattern;
         public Sprite sprite;
+        public DestroyPattern destroyPattern;
         public GameObject destroyEffect;
     }
 }
