@@ -15,6 +15,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7932498854989450506, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
         type: 3}
+      propertyPath: GemType
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: -7932498854989450506, guid: 724e93e48c6cc0b4ab3d44e5ea34f2ec,
+        type: 3}
       propertyPath: gemType
       value: 10
       objectReference: {fileID: 0}

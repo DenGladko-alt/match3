@@ -14,7 +14,7 @@ namespace Match3
             {
                 if (!gem) continue;
                 
-                if (gem.IsSpecial()) specialGems.Add(gem);
+                if (gem.GemType.IsSpecial()) specialGems.Add(gem);
             }
 
             return specialGems;
@@ -80,47 +80,53 @@ namespace Match3
             return gems.GroupBy(gem => gem.MergeGroup)
                 .ToDictionary(group => group.Key, group => group.ToHashSet());
         }
-        
-        public static bool MatchesAt(Vector2Int positionToCheck, Gem gemToCheck, Gem[,] gems)
+
+        public static bool IsMatch(GemType gemType1, GemType gemType2, GemType GemType3)
         {
-            if (positionToCheck.x > 1)
+            return gemType1 == gemType2 && gemType2 == GemType3;
+        }
+        
+        public static bool MatchesAt(Vector2Int positionToCheck, Gem[,] gems, GemType gemTypeToCheck)
+        {
+            // Helper function to safely get a gem at a given position
+            Gem GetGem(Vector2Int position)
             {
-                if (gems[positionToCheck.x - 1, positionToCheck.y].GemType == gemToCheck.GemType &&
-                    gems[positionToCheck.x - 2, positionToCheck.y].GemType == gemToCheck.GemType)
-                    return true;
+                if (IsWithinBounds(position, gems))
+                {
+                    return gems[position.x, position.y];
+                }
+                return null;
             }
 
-            if (positionToCheck.y > 1)
+            // Retrieve adjacent gems
+            Gem mostLeftGem = GetGem(new Vector2Int(positionToCheck.x - 2, positionToCheck.y));
+            Gem leftGem = GetGem(new Vector2Int(positionToCheck.x - 1, positionToCheck.y));
+            Gem mostBottomGem = GetGem(new Vector2Int(positionToCheck.x, positionToCheck.y - 2));
+            Gem bottomGem = GetGem(new Vector2Int(positionToCheck.x, positionToCheck.y - 1));
+
+            // Check horizontal match
+            if (mostLeftGem != null && leftGem != null &&
+                mostLeftGem.GemType == gemTypeToCheck &&
+                leftGem.GemType == gemTypeToCheck)
             {
-                if (gems[positionToCheck.x, positionToCheck.y - 1].GemType == gemToCheck.GemType &&
-                    gems[positionToCheck.x, positionToCheck.y - 2].GemType == gemToCheck.GemType)
-                    return true;
+                return true;
+            }
+
+            // Check vertical match
+            if (mostBottomGem != null && bottomGem != null &&
+                mostBottomGem.GemType == gemTypeToCheck &&
+                bottomGem.GemType == gemTypeToCheck)
+            {
+                return true;
             }
 
             return false;
         }
 
-        public static HashSet<Gem> GetGemsFromPositionsOnBoard(List<Vector2Int> positions, GameBoard board)
+        private static bool IsWithinBounds(Vector2Int position, Gem[,] gems)
         {
-            HashSet<Gem> gems = new HashSet<Gem>();
-            foreach (Vector2Int pos in positions)
-            {
-                for (int x = 0; x < board.Width; x++)
-                {
-                    for (int y = 0; y < board.Height; y++)
-                    {
-                        if (pos.x < 0 || pos.x >= board.Width || pos.y < 0 || pos.y >= board.Height) continue;
-                        
-                        Gem currentGem = board.AllGems[pos.x, pos.y];
-                        if (currentGem != null)
-                        {
-                            gems.Add(currentGem);
-                        }
-                    }
-                }
-            }
-
-            return gems;
+            return position.x >= 0 && position.x < gems.GetLength(0) &&
+                position.y >= 0 && position.y < gems.GetLength(1);
         }
     }
 }

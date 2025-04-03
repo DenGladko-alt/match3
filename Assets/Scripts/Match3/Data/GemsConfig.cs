@@ -17,8 +17,8 @@ namespace Match3
                     return gemConfigs[i].sprite;
                 }
             }
-
-            throw new InvalidOperationException($"Sprite for GemType {gemType} not found.");
+            
+            throw new ArgumentException($"Sprite for GemType {gemType} not found.");
         }
 
         public DestroyPattern GetDestroyPattern(GemType gemType)
@@ -31,7 +31,7 @@ namespace Match3
                 }
             }
 
-            throw new InvalidOperationException($"Destroy pattern for GemType {gemType} not found.");
+            throw new ArgumentException($"Destroy pattern for GemType {gemType} not found.");
         }
 
         public GameObject GetDestroyEffect(GemType gemType)
@@ -44,7 +44,7 @@ namespace Match3
                 }
             }
 
-            throw new InvalidOperationException($"Destroy effect for GemType {gemType} not found.");
+            throw new ArgumentException($"Destroy effect for GemType {gemType} not found.");
         }
     }
 

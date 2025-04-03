@@ -6,44 +6,24 @@ namespace Match3
 {
     public class GameBoardView : MonoBehaviour
     {
-        [SerializeField] private GameBoard gameBoard;
         [SerializeField] private Transform boardTilesHolder;
         
-        private GameVariablesService gameVariables;
-        
-        private bool initialized = false;
-
-        private void OnEnable()
-        {
-            if (!initialized)
-            {
-                gameBoard.OnGameBoardSetup += OnGameBoardSetup;
-            }
-        }
-
-        private void OnDisable()
-        {
-            gameBoard.OnGameBoardSetup -= OnGameBoardSetup;
-        }
-
-        private void OnGameBoardSetup()
-        {
-            CreateBoardTiles();
-            initialized = true;
-        }
+        private GameVariablesManager gameVariables;
 
         private void Start()
         {
-            ServiceManager.Instance.TryGet(out gameVariables);
+            ServiceLocator.Instance.TryGet(out gameVariables);
+
+            CreateBoardTiles();
         }
 
         private void CreateBoardTiles()
         {
-            if (gameVariables == null) ServiceManager.Instance.TryGet(out gameVariables);
+            if (gameVariables == null) ServiceLocator.Instance.TryGet(out gameVariables);
             
-            for (int x = 0; x < gameBoard.Width; x++)
+            for (int x = 0; x < gameVariables.LevelConfig.BoardWidth; x++)
             {
-                for (int y = 0; y < gameBoard.Height; y++)
+                for (int y = 0; y < gameVariables.LevelConfig.BoardHeight; y++)
                 {
                     Vector2 _pos = new Vector2(x, y);
                     GameObject _bgTile = Instantiate(gameVariables.GameSettings.BoardBackgroundTilesPrefab, 

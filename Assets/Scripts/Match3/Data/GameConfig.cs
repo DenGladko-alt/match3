@@ -8,6 +8,9 @@ namespace Match3
     [CreateAssetMenu(fileName = "GameSettings", menuName = "Data/Game Settings", order = 0)]
     public class GameConfig : ScriptableObject
     {
+        public Gem DefaultGemPrefab;
+        public GemsConfig DefaultGemsConfig;
+        
         public int ScoreForDestroyedGem = 10;
         public int GemDropHeight = 0;
         public GameObject BoardBackgroundTilesPrefab;
@@ -26,6 +29,5 @@ namespace Match3
         [Header("Specials spawn rules")]
         public Gem BombPrefab;
         public int BombSpawnCountRule = 4;
-        
     }
 }

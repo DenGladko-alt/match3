@@ -1,17 +1,20 @@
-﻿using UnityEngine;
-using Utility;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Match3
 {
-    public class GameLogic : MonoBehaviourService<GameLogic>
+    public class GameLogic : MonoBehaviour
     {
-        
         #region Variables
 
         [SerializeField, Range(0, 1f)] private float timeSpeed = 1f;
         
-        public GameState CurrentState { get; private set; } = GameState.Move;
-
+        public List<Gem> gems = new List<Gem>();
+        
+        private int currentlyMovingGemsCount = 0;
+        
+        public GameState CurrentState { get; private set; } = GameState.WaitingInput;
+        
         #endregion
         
         #region MonoBehaviour
@@ -23,11 +26,45 @@ namespace Match3
 
         #endregion
 
-        #region Logic
+        #region Events
 
-        public void SetState(GameState _CurrentState)
+        private void OnEnable()
         {
-            CurrentState = _CurrentState;
+            Gem.OnGemMoving += OnGemMoving;
+            Gem.OnGemStopped += OnGemStopped;
+        }
+        private void OnDisable()
+        {
+            Gem.OnGemMoving -= OnGemMoving;
+            Gem.OnGemStopped -= OnGemStopped;
+        }
+        
+        private void OnGemMoving(Gem gem)
+        {
+            currentlyMovingGemsCount++;
+            UpdateGameState();
+        }
+
+        private void OnGemStopped(Gem gem)
+        {
+            currentlyMovingGemsCount--;
+            UpdateGameState();
+        }
+
+        #endregion
+
+        #region Logic
+        
+        private void UpdateGameState()
+        {
+            if (currentlyMovingGemsCount > 0)
+            {
+                CurrentState = GameState.MovingGems;
+            }
+            else
+            {
+                CurrentState = GameState.WaitingInput;
+            }
         }
 
         #endregion

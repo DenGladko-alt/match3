@@ -10,32 +10,41 @@ using UnityEditor;
 
 namespace Match3
 {
-    public class Gem : MonoBehaviour
+    public class Gem : MonoBehaviour, IPoolable
     {
         #region Variables
 
-            // TODO: Just for debug, Remove later
-            [SerializeField] private TextMeshPro textMeshPro;
+        // Events
+        public static event Action<Gem> OnGemDestroyed;
+        public static event Action<Gem> OnGemMoving; 
+        public static event Action<Gem> OnGemStopped; 
         
-            // Events
-            public static event Action<Gem> OnGemDestroyed;
+        // Debug
+        // TODO: Just for debug, Remove later
+        [SerializeField] private TextMeshPro textMeshPro;
+        
+        [SerializeField] private GemsConfig gemsConfig;
+        [SerializeField] private SpriteRenderer spriteRenderer;
+        
+        [Header("Current settings")]
+        public GemType GemType;
+        public Vector2Int PosIndex = Vector2Int.zero;
+        
+        public int MergeGroup = -1;
+        public bool MovedByPlayer = false;
+        public float DestroyDelay = 0;
 
-            // Serialized fields
-            [SerializeField] private GemType gemType;
-            [SerializeField] private GemsConfig gemsConfig;
-            [SerializeField] private SpriteRenderer spriteRenderer;
-            
-            [Header("Current settings")]
-            public Vector2Int PosIndex;
-            public int MergeGroup = -1;
-            public bool MovedByPlayer = false;
-            public float DestroyDelay = 0;
-
-            private GameVariablesService gameVariables;
-            
-            // Properties
-            public GemType GemType => gemType;
-            public DestroyPattern DestroyPattern => gemsConfig.GetDestroyPattern(gemType);
+        private Collider2D boxCollider;
+        
+        private GameVariablesManager gameVariables;
+        private PoolManager poolManager;
+        
+        private Coroutine moveCoroutine = null;
+        
+        // Properties
+        public DestroyPattern DestroyPattern { get; private set; }
+        public bool IsMarkedForDestruction { get; private set; } = false;
+        public PoolType GetPoolType { get; set; } = PoolType.GemBase;
 
         #endregion
 
@@ -48,7 +57,7 @@ namespace Match3
                     EditorApplication.delayCall += () =>
                     {
                         if (spriteRenderer != null)
-                            spriteRenderer.sprite = gemsConfig.GetSprite(gemType);
+                            Build();
                     };
                 }
                         
@@ -60,30 +69,76 @@ namespace Match3
 
         private void Start()
         {
-            ServiceManager.Instance.TryGet(out gameVariables);
+            ServiceLocator.Instance.TryGet(out gameVariables);
+            ServiceLocator.Instance.TryGet(out poolManager);
+            
+            boxCollider = GetComponent<Collider2D>();
         }
 
         private void Update()
         {
             textMeshPro.text = PosIndex.ToString();
+            name = PosIndex.ToString();
+        }
+
+        #endregion
+
+        #region Events
+        
+        public void OnSpawn() {}
+
+        public void OnDespawn() { ResetGem(); }
+
+        #endregion
+
+        #region Builders
+
+        public Gem WithGemType(GemType type)
+        {
+            GemType = type;
+            return this;
+        }
+        
+        public Gem WithPositionIndex(Vector2Int position)
+        {
+            PosIndex = position;
+            return this;
+        }
+
+        public Gem Build()
+        {
+            spriteRenderer.sprite = gemsConfig.GetSprite(GemType);
+            DestroyPattern = gemsConfig.GetDestroyPattern(GemType);            
+            
+            return this;
         }
 
         #endregion
 
         #region Logic
-        
-        public void SetupGem(Vector2Int position)
+
+        public void ResetGem()
         {
-            PosIndex = position;
+            PosIndex = new Vector2Int(100, 100);
+            MergeGroup = -1;
+            MovedByPlayer = false;
+            DestroyDelay = 0;
+            IsMarkedForDestruction = false;
+            boxCollider.enabled = true;
         }
 
         public void MoveToPositionIndex()
         {
-            StartCoroutine(MoveToPositionOverDuration(PosIndex, gameVariables.GameSettings.SwapDuration));
+            moveCoroutine = StartCoroutine(MoveToPositionOverDuration(PosIndex, gameVariables.GameSettings.SwapDuration));
         }
 
         private IEnumerator MoveToPositionOverDuration(Vector2 end, float duration)
         {
+            OnGemMoving?.Invoke(this);
+         
+            // Disable collider for selection
+            boxCollider.enabled = false;
+            
             float elapsedTime = 0f;
             
             Vector3 startPosition = transform.position;
@@ -96,21 +151,31 @@ namespace Match3
             }
             
             transform.position = end;
+            
+            // Enable collider for selection
+            if (IsMarkedForDestruction == false)
+            {
+                boxCollider.enabled = true;
+            }
+            
+            OnGemStopped?.Invoke(this);
         }
 
-        public void DestroyGem(bool playEffect = true)
+        public void MarkForDestruction(float delay)
         {
-            if (playEffect) PlayDestroyEffect();
+            boxCollider.enabled = false;
+            DestroyDelay = delay;
+            IsMarkedForDestruction = true;
+        }
+
+        public void DestroyGem()
+        {
+            if (moveCoroutine != null) StopCoroutine(moveCoroutine);
             OnGemDestroyed?.Invoke(this);
-            Destroy(gameObject);
-        }
-
-        private void PlayDestroyEffect()
-        {
-            Instantiate(gemsConfig.GetDestroyEffect(gemType), transform.position, Quaternion.identity);
+            
+            poolManager.Despawn(this);
         }
 
         #endregion
-    
     }
 }

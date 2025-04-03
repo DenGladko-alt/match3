@@ -2,18 +2,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using Utility;
-using Random = UnityEngine.Random;
 
 namespace Match3
 {
-    public class GameBoard : MonoBehaviourService<GameBoard>
+    public class GameBoard : MonoBehaviour
     {
         public event Action OnGameBoardSetup;
         
         #region Variables
+        
+        [SerializeField] private Transform gemsContainer;
         
         private int currentDestroyGroup;
         private HashSet<Gem> matchedGems = new HashSet<Gem>();
@@ -21,7 +21,7 @@ namespace Match3
         private readonly HashSet<Gem> markedForDestruction = new HashSet<Gem>();
         
         private GemSpawnManager gemSpawnManager;
-        private GameVariablesService gameVariables;
+        private GameVariablesManager gameVariables;
         
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -33,18 +33,22 @@ namespace Match3
 
         private void Start()
         {
-            ServiceManager.Instance.TryGet(out gemSpawnManager);
-            ServiceManager.Instance.TryGet(out gameVariables);
+            ServiceLocator.Instance.TryGet(out gemSpawnManager);
+            ServiceLocator.Instance.TryGet(out gameVariables);
             
             Width = gameVariables.LevelConfig.BoardWidth;
             Height = gameVariables.LevelConfig.BoardHeight;
             
             AllGems = new Gem[Width, Height];
             
-            OnGameBoardSetup?.Invoke();
+            FillBoard();
             
-            gemSpawnManager.Setup(this);
+            OnGameBoardSetup?.Invoke();
         }
+        
+        #endregion
+
+        #region Events
 
         private void OnEnable()
         {
@@ -56,15 +60,15 @@ namespace Match3
             // TODO: Remove InputHandler dependency
             InputHandler.OnGemsSwipe -= OnGemsSwipe;
         }
-
-        #endregion
-
-        #region Gems swapping
-
+        
         private void OnGemsSwipe(Gem firstGem, Gem secondGem)
         {
             StartCoroutine(SwapGemsCoroutine(firstGem, secondGem));
         }
+
+        #endregion
+
+        #region Gems swapping
 
         private IEnumerator SwapGemsCoroutine(Gem firstGem, Gem secondGem)
         {
@@ -78,8 +82,10 @@ namespace Match3
             }
             else
             {
-                // Match not found, revert
-                SwapGems(secondGem, firstGem, false);
+                if (firstGem?.isActiveAndEnabled == true && secondGem?.isActiveAndEnabled == true)
+                {
+                    SwapGems(secondGem, firstGem, false);
+                }
             }
         }
 
@@ -107,7 +113,7 @@ namespace Match3
             
             matchedGems = Match3Utilities.GetMatchingGemsFromBoard(this);
             groupedMatches = Match3Utilities.GetGroupedMatchingGems(matchedGems);
-            markedForDestruction.AddRange(matchedGems);
+            markedForDestruction.UnionWith(matchedGems);
             
             HashSet<Gem> specialGems = Match3Utilities.GetSpecialGemsFromHashSet(matchedGems);
             
@@ -148,10 +154,10 @@ namespace Match3
                         }
                         else
                         {
-                            gemToDestroy.DestroyDelay = patternPositions[i].z * gameVariables.GameSettings.SimpleGemsDestructionDelay + gem.DestroyDelay;
+                            gemToDestroy.MarkForDestruction(patternPositions[i].z * gameVariables.GameSettings.SimpleGemsDestructionDelay + gem.DestroyDelay);
                             markedForDestruction.Add(gemToDestroy);
 
-                            if (gemToDestroy.IsSpecial())
+                            if (gemToDestroy.GemType.IsSpecial())
                             {
                                 newFoundSpecialGems.Add(gemToDestroy);
                             }
@@ -175,19 +181,6 @@ namespace Match3
         {
             StartCoroutine(DestroyMarkedGemsCoroutine());
         }
-
-        // Can be remade to return Special GemType by rule
-        private bool ShouldSpawnSpecialGem(Gem gem)
-        {
-            if (groupedMatches.TryGetValue(gem.MergeGroup, out HashSet<Gem> gemsInGroup))
-            {
-                if (gemsInGroup.Count >= gameVariables.GameSettings.BombSpawnCountRule)
-                {
-                    return gem.MovedByPlayer;
-                }
-            }
-            return false;
-        }
         
         private IEnumerator DestroyMarkedGemsCoroutine()
         {
@@ -209,7 +202,7 @@ namespace Match3
                         DestroyGem(gem);
                         if (shouldSpawnGem)
                         {
-                            gemSpawnManager.SpawnGem(GemType.Bomb, gem.PosIndex, this);
+                            SpawnGemOnBoard(gem.PosIndex, 0, "Gem Bomb", GemType.Bomb);
                         }
                         destroyedGems.Add(gem);
                     }
@@ -229,6 +222,18 @@ namespace Match3
             StartCoroutine(DecreaseRowCoroutine());
         }
         
+        private bool ShouldSpawnSpecialGem(Gem gem)
+        {
+            if (groupedMatches.TryGetValue(gem.MergeGroup, out HashSet<Gem> gemsInGroup))
+            {
+                if (gemsInGroup.Count >= gameVariables.GameSettings.BombSpawnCountRule)
+                {
+                    return gem.MovedByPlayer;
+                }
+            }
+            return false;
+        }
+        
         private void DestroyGem(Gem gem)
         {
             if (!gem) return;
@@ -240,51 +245,103 @@ namespace Match3
 
         #endregion
 
-        #region Board manipulation
+        #region Filling
 
-        private void RefillBoard()
+        private void SpawnGemOnBoard(Vector2Int index, int heightOffset, string withName, GemType gemType = GemType.None)
+        {
+            if (gemType == GemType.None)
+            {
+                gemType = gameVariables.LevelConfig.GetRandomWeightedGemType();
+            }
+            
+            Gem spawnedGem = gemSpawnManager.GetGemOfType(gemType)
+                .WithPositionIndex(index);
+            
+            spawnedGem.name = withName;
+            spawnedGem.transform.SetParent(gemsContainer);
+            spawnedGem.transform.localPosition = new Vector2(spawnedGem.PosIndex.x, spawnedGem.PosIndex.y + heightOffset);
+            
+            AllGems[index.x, index.y] = spawnedGem;
+        }
+        
+        // For initial board spawn
+        private void FillBoard()
         {
             for (int x = 0; x < Width; x++)
             {
                 for (int y = 0; y < Height; y++)
                 {
-                    Gem _curGem = AllGems[x, y];
-                    if (_curGem == null)
+                    Gem mostLeftGem = null;
+                    Gem leftGem = null;
+                    Gem mostBottomGem = null;
+                    Gem bottomGem = null;
+
+                    // Generate initial random GemType
+                    GemType randomisedGemType = gameVariables.LevelConfig.GetRandomWeightedGemType();
+
+                    // Check horizontal neighbors (boundary check: x > 1)
+                    if (x > 1)
                     {
-                        int gemToUse = Random.Range(0, gameVariables.LevelConfig.Gems.Length);
-                        gemSpawnManager.SpawnGem(new Vector2Int(x, y + gameVariables.GameSettings.GemDropHeight), 
-                            gameVariables.LevelConfig.Gems[gemToUse], this);
+                        mostLeftGem = AllGems[x - 2, y];
+                        leftGem = AllGems[x - 1, y];
                     }
+                    
+                    // Check vertical neighbors (boundary check: y > 1)
+                    if (y > 1)
+                    {
+                        mostBottomGem = AllGems[x, y - 2];
+                        bottomGem = AllGems[x, y - 1];
+                    }
+
+                    // Check for matches
+                    bool isAMatch =
+                        (mostBottomGem != null && bottomGem != null &&
+                            Match3Utilities.IsMatch(mostBottomGem.GemType, bottomGem.GemType, randomisedGemType)) ||
+                        (mostLeftGem != null && leftGem != null &&
+                            Match3Utilities.IsMatch(mostLeftGem.GemType, leftGem.GemType, randomisedGemType));
+
+                    // If there's a match, pick a new GemType to avoid matches
+                    if (isAMatch)
+                    {
+                        randomisedGemType = gameVariables.LevelConfig.GetRandomWeightedGemType(
+                            new HashSet<GemType>() { randomisedGemType });
+                    }
+                    
+                    SpawnGemOnBoard(new Vector2Int(x, y), 0, $"Gem [{x},{y}]", randomisedGemType);
                 }
             }
-
-            CheckMisplacedGems();
         }
         
         private IEnumerator DecreaseRowCoroutine()
         {
             yield return new WaitForSeconds(gameVariables.GameSettings.FallingGemsDelay);
-            
-            int nullCounter = 0;
+
             for (int x = 0; x < Width; x++)
             {
+                bool encounteredNull = false;
+                int nullCounter = 0;
+
                 for (int y = 0; y < Height; y++)
                 {
                     Gem curGem = AllGems[x, y];
-                    if (!curGem)
+
+                    if (curGem is null)
                     {
+                        encounteredNull = true;
                         nullCounter++;
                     }
-                    else if (nullCounter > 0)
+                    else if (encounteredNull)
                     {
-                        curGem.PosIndex.y -= nullCounter;
-                        curGem.MoveToPositionIndex();
-                        AllGems[x, y - nullCounter] = curGem;
-                        AllGems[x, y] = null;
+                        int newY = y - nullCounter;
+                        if (newY >= 0)
+                        {
+                            curGem.PosIndex.y = newY;
+                            curGem.MoveToPositionIndex();
+                            AllGems[x, newY] = curGem;
+                            AllGems[x, y] = null;
+                        }
                     }
                 }
-
-                nullCounter = 0;
             }
 
             StartCoroutine(FillBoardCoroutine());
@@ -305,6 +362,24 @@ namespace Match3
             }
         }
         
+        private void RefillBoard()
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    Gem _curGem = AllGems[x, y];
+                    if (_curGem == null)
+                    {
+                        GemType gemType = gameVariables.LevelConfig.GetRandomWeightedGemType();
+                        SpawnGemOnBoard(new Vector2Int(x, y), 0, $"Refilled Gem [{x},{y}]", gemType);
+                    }
+                }
+            }
+
+            //CheckMisplacedGems();
+        }
+        
         private void CheckMisplacedGems()
         {
             List<Gem> foundGems = new List<Gem>();
@@ -321,6 +396,7 @@ namespace Match3
 
             foreach (Gem g in foundGems)
             {
+                Debug.Log($"Found misplaced gem at: {g.PosIndex} - Destroying it");
                 Destroy(g.gameObject);
             }
         }

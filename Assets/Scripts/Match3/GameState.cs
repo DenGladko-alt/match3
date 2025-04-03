@@ -2,7 +2,7 @@
 {
     public enum GameState
     {
-        Wait = 0,
-        Move = 1
+        WaitingInput = 0,
+        MovingGems = 1
     }
 }

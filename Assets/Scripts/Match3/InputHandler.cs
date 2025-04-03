@@ -10,12 +10,20 @@ namespace Match3
         public static event Action<Gem> OnGemSelected;
         public static event Action<Gem, Gem> OnGemsSwipe;
         public static event Action<Gem> OnGemDeselected;
-
+        
         // Variables
         private Gem firstGem;
+        private GameLogic gameLogic;
+
+        private void Start()
+        {
+            ServiceLocator.Instance.TryGet(out gameLogic);
+        }
 
         private void Update()
         {
+            //if (gameLogic.CurrentState != GameState.WaitingInput) return;
+            
             if (Input.GetMouseButtonDown(0))
             {
                 HandleMouseDown();

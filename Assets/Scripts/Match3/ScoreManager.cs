@@ -8,13 +8,13 @@ namespace Match3
     {
         public static event Action<int, int> OnScoreChanged; // <old score, new score>
 
-        private GameVariablesService gameVariables;
+        private GameVariablesManager gameVariables;
         
         private int score;
 
         private void Start()
         {
-            ServiceManager.Instance.TryGet(out gameVariables);
+            ServiceLocator.Instance.TryGet(out gameVariables);
         }
 
         private void OnEnable()
